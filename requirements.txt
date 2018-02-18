@@ -1,0 +1,6 @@
+importanize
+
+pika
+pyserial
+
+../bridge-api/
