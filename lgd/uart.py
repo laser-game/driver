@@ -5,12 +5,20 @@ import time
 import os
 import log
 
+
 class Uart(object):
-    def __init__(self):
+    def __init__(self, name='CP2102', baudrate=115200, bytesize=8, parity='N', port=None):
         """ initialization """
-        self.name = 'CP2102'
+        self.name = name
         self.ser = serial.Serial()
-        self.port = self.find_device()
+        self.ser.baudrate = baudrate
+        self.ser.bytesize = bytesize
+        self.ser.parity = parity
+        self.ser.timeout = 0.1                 # in seconds
+        if port == None:
+            self.ser.port = self.find_device()
+        else:
+            self.ser.port = port
         self.open_connection()
 
     def __del__(self):
@@ -19,29 +27,31 @@ class Uart(object):
 
     def find_device(self):
         """ find port when is connected device """
-        for dev in list_ports.comports():
-            print(dev.description)
-            if self.name in dev.description:
-                return dev.device
+        for port in list_ports.comports():
+            if port.description == self.name:
+                return port.device
 
         log.err(self.name + ' is not connected')
+        self.list_ports()
         exit(1)
+
+    def list_ports(self):
+        """ print list all ports """
+        log.stdo('List all connected devices:')
+        for port in list_ports.comports():
+            print('    ', port.device, '\t', port.description)
 
     def open_connection(self):
         """ open connection """
-        self.ser.port = self.port
-        self.ser.baudrate = 115200
-        self.ser.stopbits = serial.STOPBITS_ONE
-        self.ser.parity = serial.PARITY_NONE
-        self.ser.bytesize = serial.EIGHTBITS
-
-        self.ser.timeout = 1.5 # in seconds
         try:
             self.ser.open()
-            log.ok('port {} is open'.format(self.port))
+            log.ok('port {} is open'.format(self.ser.port))
         except serial.SerialException:
-            log.err('port {} opening is fail'.format(self.port))
+            log.err('port {} opening is fail'.format(self.ser.port))
             exit(1)
+
+        time.sleep(2)
+        self.ser.reset_input_buffer()
 
     def close_connection(self):
         """ end connection """
@@ -50,22 +60,27 @@ class Uart(object):
 
     def read_byte(self):
         """ read one byte """
-        tmp = self.ser.read(1)
+        try:
+            tmp = self.ser.read(1)
+        except serial.SerialException:
+            log.err('the device was disconnected')
+            os.system('killall ser-term')
+
         if tmp == b'':
             return None
         return int.from_bytes(tmp, byteorder='little', signed=False)
 
     def send_byte(self, byte):
         """ write one byte """
-        self.ser.write(bytes((byte,)))
+        try:
+            self.ser.write(bytes((byte,)))
+        except serial.SerialException:
+            log.err('the device was disconnected')
+
         time.sleep(0.01)
 
-    def send_cmd(self, cmd):
-        """ send command """
-        if type(cmd) == str:
-            for c in cmd:
+    def write(self, text):
+        """ send text """
+        if type(text) == str:
+            for c in text:
                 self.send_byte(ord(c))
-            self.send_byte(ord('\n'))
-            log.stdo('CMD: ' + log.colors.reset + cmd)
-
-    # TODO add proces for read
