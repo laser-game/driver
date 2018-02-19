@@ -1,8 +1,10 @@
+import os
+import time
+from multiprocessing import Process
+
 import serial
 from serial.tools import list_ports
 
-import time
-import os
 import log
 
 
@@ -10,11 +12,13 @@ class Uart(object):
     def __init__(self, name='CP2102', baudrate=115200, bytesize=8, parity='N', port=None):
         """ initialization """
         self.name = name
+        self.proc_rx = None
         self.ser = serial.Serial()
         self.ser.baudrate = baudrate
         self.ser.bytesize = bytesize
         self.ser.parity = parity
         self.ser.timeout = 0.1                 # in seconds
+
         if port == None:
             self.ser.port = self.find_device()
         else:
@@ -70,7 +74,7 @@ class Uart(object):
             return None
         return int.from_bytes(tmp, byteorder='little', signed=False)
 
-    def send_byte(self, byte):
+    def write_byte(self, byte):
         """ write one byte """
         try:
             self.ser.write(bytes((byte,)))
@@ -79,8 +83,33 @@ class Uart(object):
 
         time.sleep(0.01)
 
+    def read(self):
+        rx_buffer = ''
+        while self.ser.in_waiting > 0:
+            rx_buffer += chr(self.read_byte())
+        if rx_buffer != '':
+            print(rx_buffer)
+
     def write(self, text):
         """ send text """
         if type(text) == str:
             for c in text:
-                self.send_byte(ord(c))
+                self.write_byte(ord(c))
+
+    def rx(self):
+        while True:
+            self.read()
+
+    def process_rx_start(self):
+        if self.proc_rx == None:
+            self.proc_rx = Process(target=self.rx)
+            self.proc_rx.start()
+
+    def process_rx_join(self):
+        if self.proc_rx != None:
+            self.proc_rx.join()
+
+    def process_rx_stop(self):
+        if self.proc_rx != None:
+            self.proc_rx.stop()
+            self.proc_rx = None
