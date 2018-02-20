@@ -102,7 +102,7 @@ class Uart(object):
             self.read()
 
     def process_rx_start(self):
-        if self.proc_rx == None:
+        if not self.proc_rx:
             self.proc_rx = Process(target=self.rx)
             self.proc_rx.start()
 
