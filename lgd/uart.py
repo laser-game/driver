@@ -84,11 +84,12 @@ class Uart(object):
         time.sleep(0.01)
 
     def read(self):
-        rx_buffer = ''
-        while self.ser.in_waiting > 0:
-            rx_buffer += chr(self.read_byte())
-        if rx_buffer != '':
-            print(rx_buffer)
+        rx_buffer = []
+        while self.ser.in_waiting:
+            rx_buffer.append(self.read_byte())
+
+        if rx_buffer:
+            print(''.join(map(chr, rx_buffer)))
 
     def write(self, text):
         """ send text """
