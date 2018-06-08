@@ -1,6 +1,9 @@
-importanize
-
 pika
+numpy
 pyserial
 
 ../bridge-api/
+
+# python linter
+importanize
+mypy
