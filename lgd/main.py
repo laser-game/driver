@@ -1,32 +1,99 @@
-# coding=utf-8
+#!/usr/bin/env python
 
-import pika
-from pika import BasicProperties
-from pika.adapters.blocking_connection import BlockingChannel
-from pika.spec import Basic
-
-from lgba.messages.base import BaseMessage
-
-# TODO: settings definition
-connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
-channel = connection.channel()
-
-channel.queue_declare(queue='commands')
+import threading
+from uart import UART
+from crc import CRC32
+from packet import Packet
+from time import sleep
 
 
-def callback(ch: BlockingChannel, method: Basic.Deliver, properties: BasicProperties, body: bytes):
-    # pprint(ch)
-    # pprint(method)
-    # pprint(properties)
-    # TODO: message processors
-    print(BaseMessage.deserialize(body))
+def read():
+    print('reading thread run')
+
+    while True:
+        rx_byte = ser.read_byte()
+        if type(rx_byte) is int:
+            uart_rx_callback(rx_byte)
 
 
-channel.basic_consume(
-    callback,
-    queue='commands',
-    no_ack=True
-)
+def uart_rx_callback(rx_byte):
+    print(chr(rx_byte), end='')
 
-print(' [*] Waiting for messages. To exit press CTRL+C')
-channel.start_consuming()
+
+if __name__ == '__main__':
+    ser = UART(port='/dev/ttyUSB0')
+    crc = CRC32()
+    packet = Packet(ser, crc, address=2)
+
+    thread = threading.Thread(target=read)
+    thread.start()
+
+    while True:
+        packet.create([0, 0, 0])
+        packet.tx()
+        packet.create([50, 0, 0])
+        packet.tx()
+        packet.create([100, 0, 0])
+        packet.tx()
+        packet.create([150, 0, 0])
+        packet.tx()
+        packet.create([200, 0, 0])
+        packet.tx()
+        packet.create([250, 0, 0])
+        packet.tx()
+        packet.create([200, 0, 0])
+        packet.tx()
+        packet.create([150, 0, 0])
+        packet.tx()
+        packet.create([100, 0, 0])
+        packet.tx()
+        packet.create([50, 0, 0])
+        packet.tx()
+        packet.create([0, 0, 0])
+        packet.tx()
+
+        packet.create([0, 0, 0])
+        packet.tx()
+        packet.create([0, 50, 0])
+        packet.tx()
+        packet.create([0, 100, 0])
+        packet.tx()
+        packet.create([0, 150, 0])
+        packet.tx()
+        packet.create([0, 200, 0])
+        packet.tx()
+        packet.create([0, 250, 0])
+        packet.tx()
+        packet.create([0, 200, 0])
+        packet.tx()
+        packet.create([0, 150, 0])
+        packet.tx()
+        packet.create([0, 100, 0])
+        packet.tx()
+        packet.create([0, 50, 0])
+        packet.tx()
+        packet.create([0, 0, 0])
+        packet.tx()
+
+        packet.create([0, 0, 0])
+        packet.tx()
+        packet.create([0, 0, 50])
+        packet.tx()
+        packet.create([0, 0, 100])
+        packet.tx()
+        packet.create([0, 0, 150])
+        packet.tx()
+        packet.create([0, 0, 200])
+        packet.tx()
+        packet.create([0, 0, 250])
+        packet.tx()
+        packet.create([0, 0, 200])
+        packet.tx()
+        packet.create([0, 0, 150])
+        packet.tx()
+        packet.create([0, 0, 100])
+        packet.tx()
+        packet.create([0, 0, 50])
+        packet.tx()
+        packet.create([0, 0, 0])
+        packet.tx()
